@@ -133,13 +133,6 @@ func init() {
 // from query string values.
 // Returns the zero value of the type upon any sort of failure.
 func BindFromValues(values url.Values, name string, typ reflect.Type) reflect.Value {
-	if typ.Kind() == reflect.Slice {
-		if val, found := values[name]; found {
-			ret, _ := SliceBinder(val, typ)
-			return ret
-		}
-		return reflect.Zero(typ)
-	}
 	ret, _ := Bind(values.Get(name), typ)
 	return ret
 }
