@@ -81,8 +81,8 @@ You can bind an "id" url parameter to a database record using a custom binder.
 ```go
 
 var (
-	ItemBinder = func(val string, typ reflect.Type) (reflect.Value, bool) {
-		// loads the object from the DB
+	ItemBinder = func(id string, typ reflect.Type) (reflect.Value, bool) {
+		// loads the object of id "id" from the DB
 		i, err := [...]
 		if err != nil {
 			return reflect.Zero(typ), true
