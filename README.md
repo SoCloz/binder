@@ -50,7 +50,8 @@ binder binds query string or url parameters to func parameters.
 
 ```go
 func MyAction(param1 string, param2 float32, param3 []string, param4 *int) response.Response {
-	log.Printf("param1=%v, param2=%v, param3=%v, param4=%v", param1, param2, param3, param4)
+	str := fmt.Sprintf("param1=%+v, param2=%+v, param3=%+v, param4=%+v", param1, param2, param3, param4)
+	return &response.Basic{str}
 }
 
 r.Handle("/my_action", binder.NewActionHandler(MyAction, "param1", "param2", "param3", "param4"))
@@ -123,3 +124,13 @@ Roadmap
 * support non gorilla mux http handlers
 * struct support
 * more response types
+
+License
+-------
+
+See LICENCE
+
+Thanks
+------
+
+Binding code was largely borrowed from revel - https://github.com/robfig/revel
