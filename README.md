@@ -1,9 +1,9 @@
 binder
 ======
 
-A thin wrapper around http handlers to ease handler coding.
+http handlers without the http.Request/http.ResponseWriter clutter
 
-Works with Gorilla Mux or without.
+Uses Gorilla Mux.
 
 Without binder :
 
@@ -42,3 +42,62 @@ func ViewItemAction(i *Item) response.Response {
 r.Handle("/items/{id}", binder.NewActionWrapper(ViewItemAction, "id"))
 ```
 
+Bindings
+--------
+
+Binder currently binds :
+* integers (signed/unsigned)
+* floats
+* strings
+* booleans (true/false, on/off, 1/0)
+* slices (param=value1&param=value2&param=value3 or param=value1,value2,value3)
+* pointers (if no value found, binds nil)
+* custom binders
+
+Custom binders
+--------------
+
+You can bind an "id" url parameter to a database record using a custom binder.
+
+```go
+
+var (
+	ItemBinder = func(val string, typ reflect.Type) (reflect.Value, bool) {
+		// loads the object from the DB
+		i, err := [...]
+		if err != nil {
+			return reflect.Zero(typ), true
+		}
+		return reflect.ValueOf(i), false
+	}
+
+)
+
+func init() {
+	binder.RegisterBinder(new(Item), ItemBinder)
+}
+```
+
+Responses
+---------
+
+The following responses are possible :
+* basic
+```go
+return &response.Basic{"content"}
+```
+* json
+```go
+return &response.Json{data}
+```
+* error
+```go
+return &response.Error{http.StatusNotFound, "content"}
+```
+
+Roadmap
+-------
+
+* support non gorilla mux http handlers
+* struct support
+* more response types
