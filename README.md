@@ -39,19 +39,38 @@ func ViewItemAction(i *Item) response.Response {
 	}
 	return &response.Json{i}
 }
-r.Handle("/items/{id}", binder.NewActionWrapper(ViewItemAction, "id"))
+
+r.Handle("/items/{id}", binder.NewActionHandler(ViewItemAction, "id"))
 ```
 
 Bindings
 --------
+
+binder binds query string or url parameters to func parameters.
+
+```go
+func MyAction(param1 string, param2 float32, param3 []string, param4 *int) response.Response {
+	log.Printf("param1=%v, param2=%v, param3=%v, param4=%v", param1, param2, param3, param4)
+}
+
+r.Handle("/my_action", binder.NewActionHandler(MyAction, "param1", "param2", "param3", "param4"))
+```
+
+```
+GET /my_action
+param1=, param2=0, param3=[], param4=<nil>
+
+GET /my_action?param1=foo&param2=12.5&param3=foo,bar,baz&param4=42
+param1=foo, param2=12.5, param3=[foo,bar,baz], param4=0xc210148940
+```
 
 Binder currently binds :
 * integers (signed/unsigned)
 * floats
 * strings
 * booleans (true/false, on/off, 1/0)
-* slices (param=value1&param=value2&param=value3 or param=value1,value2,value3)
-* pointers (if no value found, binds nil)
+* slices (comma separated lists : value,value,value)
+* pointers (nil if no value found)
 * custom binders
 
 Custom binders
@@ -83,14 +102,17 @@ Responses
 
 The following responses are possible :
 * basic
+
 ```go
 return &response.Basic{"content"}
 ```
 * json
+
 ```go
 return &response.Json{data}
 ```
 * error
+
 ```go
 return &response.Error{http.StatusNotFound, "content"}
 ```

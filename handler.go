@@ -1,7 +1,6 @@
 package binder
 
-import(
-	"log"
+import (
 	"net/http"
 	"reflect"
 
@@ -18,16 +17,16 @@ type ActionArgs struct {
 
 // A handler wrapping an action
 type Handler struct {
-	Call reflect.Value
+	Call       reflect.Value
 	IsVariadic bool
-	Args []*ActionArgs
+	Args       []*ActionArgs
 }
 
 // Creates an handler wrapping an action
 // func MyAction(id int, param string) {}
 // Example: binder.NewActionHandler(MyAction, "id", "param")
 func NewActionHandler(call interface{}, params ...string) *Handler {
-	w := new(Wrapper)
+	w := new(Handler)
 	w.Call = reflect.ValueOf(call)
 	callType := w.Call.Type()
 	w.IsVariadic = callType.IsVariadic()
@@ -39,9 +38,7 @@ func NewActionHandler(call interface{}, params ...string) *Handler {
 	for i := 0; i < callType.NumIn(); i++ {
 		typ := callType.In(i)
 		w.Args[i] = &ActionArgs{Name: params[i], Type: typ}
-		log.Printf("%+v %+v", typ, w.Args[i])
 	}
-	log.Printf("%+v", w)
 	return w
 }
 

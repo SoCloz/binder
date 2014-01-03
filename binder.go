@@ -1,11 +1,10 @@
 package binder
 
 import (
-	"log"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
-	"net/url"
 )
 
 // A Binder translates between string parameters and Go data structures.
