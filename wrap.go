@@ -23,7 +23,7 @@ type Wrapper struct {
 // Wraps a controller action
 //
 // Example :
-// 	 func MyAction(id int, param string) {}
+//   func MyAction(id int, param string) {}
 //   http.Handle("/my_action", binder.Wrap(MyAction, "id", "param"))
 func Wrap(call interface{}, params ...string) *Wrapper {
 	w := new(Wrapper)
