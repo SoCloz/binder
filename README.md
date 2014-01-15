@@ -1,16 +1,15 @@
 binder
 ======
 
-http handlers without the http.Request/http.ResponseWriter clutter
+Go web framework controller component - http handlers without the http.Request/http.ResponseWriter clutter
 
-Uses Gorilla Mux.
+Works with pat or using standard net/http handler.
 
 Without binder :
 
 ```go
 func ViewItemHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+	id := r.URL.Query().Get("id")
     // Fetch item from DB
 	item, err := ...
 	if err != nil {
@@ -27,34 +26,40 @@ func ViewItemHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResult)
 }
 
-r.HandleFunc("/items/{id}", ViewItemHandler)
+http.Handle("/items", ViewItemHandler)
 ```
 
 With binder :
 
 ```go
-func ViewItemAction(i *Item) response.Response {
+func ViewItem(i *Item) response.Response {
 	if i == nil {
 		return &response.Error{http.StatusNotFound, "not found, sorry"}
 	}
 	return &response.Json{i}
 }
 
-r.Handle("/items/{id}", binder.NewActionHandler(ViewItemAction, "id"))
+http.Handle("/items", binder.Wrap(ViewItem, "id"))
+```
+
+binder is compatible with pat:
+
+```go
+m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
 ```
 
 Bindings
 --------
 
-binder binds query string or url parameters to func parameters.
+binder binds query string or url parameters to your controller parameters.
 
 ```go
 func MyAction(param1 string, param2 float32, param3 []string, param4 *int) response.Response {
-	str := fmt.Sprintf("param1=%+v, param2=%+v, param3=%+v, param4=%+v", param1, param2, param3, param4)
+	str := fmt.Sprintf("param1=%v, param2=%v, param3=%v, param4=%v", param1, param2, param3, param4)
 	return &response.Basic{str}
 }
 
-r.Handle("/my_action", binder.NewActionHandler(MyAction, "param1", "param2", "param3", "param4"))
+http.Handle("/my_action", binder.Wrap(MyAction, "param1", "param2", "param3", "param4"))
 ```
 
 ```
@@ -72,6 +77,7 @@ Binder currently binds :
 * booleans (true/false, on/off, 1/0)
 * slices (comma separated lists : value,value,value)
 * pointers (nil if no value found)
+* structs
 * custom binders
 
 Custom binders
@@ -81,8 +87,13 @@ You can bind an "id" url parameter to a database record using a custom binder.
 
 ```go
 
+import(
+	"github.com/SoCloz/binder"
+)
+
 var (
-	ItemBinder = func(id string, typ reflect.Type) (reflect.Value, bool) {
+	ItemBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
+		id := binder.GetValue(values, name)
 		// loads the object of id "id" from the DB
 		i, err := [...]
 		if err != nil {
@@ -96,6 +107,41 @@ var (
 func init() {
 	binder.RegisterBinder(new(Item), ItemBinder)
 }
+```
+
+And then :
+
+```go
+func ViewItem(i *Item) response.Response {}
+
+m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
+```
+
+Binding structs
+---------------
+
+Struct bindings are defined using field tags :
+
+```go
+type Options struct {
+	OnlyNames string   `binder:"only_names"`
+	Page      int      `binder:"page"`
+	Tags      []string `binder:"tags"`
+}
+
+func ViewItem(id int, opt Options) response.Response {}
+```
+
+And wrapped using "*" :
+
+```go
+m.Get("/items/:id", binder.Wrap(ViewItem, "id", "*"))
+```
+
+You can omit all "*" at the end of your Wrap call :
+
+```go
+m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
 ```
 
 Responses
@@ -121,8 +167,7 @@ return &response.Error{http.StatusNotFound, "content"}
 Roadmap
 -------
 
-* support non gorilla mux http handlers
-* struct support
+* binder : bind http headers
 * more response types
 
 License

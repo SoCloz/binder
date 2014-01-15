@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/gorilla/mux"
-
 	"github.com/SoCloz/binder/response"
 )
 
@@ -16,7 +14,7 @@ type ActionArgs struct {
 }
 
 // A handler wrapping an action
-type Handler struct {
+type Wrapper struct {
 	Call       reflect.Value
 	IsVariadic bool
 	Args       []*ActionArgs
@@ -25,39 +23,39 @@ type Handler struct {
 // Creates an handler wrapping an action
 // func MyAction(id int, param string) {}
 // Example: binder.NewActionHandler(MyAction, "id", "param")
-func NewActionHandler(call interface{}, params ...string) *Handler {
-	w := new(Handler)
+func Wrap(call interface{}, params ...string) *Wrapper {
+	w := new(Wrapper)
 	w.Call = reflect.ValueOf(call)
 	callType := w.Call.Type()
 	w.IsVariadic = callType.IsVariadic()
 	w.Args = make([]*ActionArgs, callType.NumIn())
 
-	if callType.NumIn() != len(params) {
+	if callType.NumIn() < len(params) {
 		panic("Wrong number of params")
 	}
 	for i := 0; i < callType.NumIn(); i++ {
 		typ := callType.In(i)
-		w.Args[i] = &ActionArgs{Name: params[i], Type: typ}
+		var paramName string
+		 if i < len(params) {
+		 	paramName = params[i]
+		 } else {
+		 	paramName = "*"
+		 }
+		w.Args[i] = &ActionArgs{Name: paramName, Type: typ}
+		if paramName == "*" {
+			RegisterStructAttributes(typ)
+		}
 	}
 	return w
 }
 
-// The handler
-func (wr *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+// The http handler
+func (wr *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	values := r.URL.Query()
 
 	methodArgs := make([]reflect.Value, len(wr.Args))
 	for i, a := range wr.Args {
-		if a.Name == "*" {
-			methodArgs[i] = reflect.ValueOf(values)
-		} else {
-			if _, found := vars[a.Name]; found {
-				methodArgs[i] = BindFromMap(vars, a.Name, a.Type)
-			} else {
-				methodArgs[i] = BindFromValues(values, a.Name, a.Type)
-			}
-		}
+		methodArgs[i] = GetBoundValue(values, a.Name, a.Type)
 	}
 	var resultValue reflect.Value
 	if wr.IsVariadic {
