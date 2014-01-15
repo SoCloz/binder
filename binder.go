@@ -15,8 +15,8 @@ type StructAttributes map[string]string
 
 var (
 	// Lookup tables
-	TypeBinders = make(map[reflect.Type]ValueBinder)
-	KindBinders = make(map[reflect.Kind]ValueBinder)
+	TypeBinders         = make(map[reflect.Type]ValueBinder)
+	KindBinders         = make(map[reflect.Kind]ValueBinder)
 	StructAttributesMap = make(map[reflect.Type]StructAttributes)
 
 	// Binds an integer (signed)
@@ -101,15 +101,15 @@ var (
 		return result, false
 	}
 
-	// Binds a comma separated list to a slice of strings.
+	// Binds a set of parameters to a struct.
 	StructBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
 		result := reflect.New(typ).Elem()
-        for fieldName, attrName := range StructAttributesMap[typ] {
+		for fieldName, attrName := range StructAttributesMap[typ] {
 			fieldValue := result.FieldByName(fieldName)
 			boundVal, _ := Bind(values, attrName, fieldValue.Type())
 			fieldValue.Set(boundVal)
-        }
-        return result, false
+		}
+		return result, false
 	}
 
 	// Binds a pointer. If nothing found, returns nil.
@@ -176,13 +176,12 @@ func RegisterBinder(i interface{}, binder ValueBinder) {
 	TypeBinders[typ] = binder
 }
 
-// Register the mapping of params to struct attributes
+// Register the mapping of params to struct fields
 func RegisterStructAttributes(typ reflect.Type) {
 	StructAttributesMap[typ] = make(StructAttributes)
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
 		if f.Type.Kind() == reflect.Struct {
-		//if f.Anonymous && f.Type.Kind() == reflect.Struct {
 			RegisterStructAttributes(f.Type)
 			StructAttributesMap[typ][f.Name] = "*"
 		} else {
@@ -198,7 +197,7 @@ func RegisterStructAttributes(typ reflect.Type) {
 func GetValue(values url.Values, name string) string {
 	// pat url parameter
 	if _, found := values[":"+name]; found {
-		return values.Get(":"+name)
+		return values.Get(":" + name)
 	}
 	// query string
 	return values.Get(name)

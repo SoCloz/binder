@@ -13,16 +13,18 @@ type ActionArgs struct {
 	Type reflect.Type
 }
 
-// A handler wrapping an action
+// A controller action wrapper
 type Wrapper struct {
 	Call       reflect.Value
 	IsVariadic bool
 	Args       []*ActionArgs
 }
 
-// Creates an handler wrapping an action
-// func MyAction(id int, param string) {}
-// Example: binder.NewActionHandler(MyAction, "id", "param")
+// Wraps a controller action
+//
+// Example :
+// 	 func MyAction(id int, param string) {}
+//   http.Handle("/my_action", binder.Wrap(MyAction, "id", "param"))
 func Wrap(call interface{}, params ...string) *Wrapper {
 	w := new(Wrapper)
 	w.Call = reflect.ValueOf(call)
@@ -36,11 +38,11 @@ func Wrap(call interface{}, params ...string) *Wrapper {
 	for i := 0; i < callType.NumIn(); i++ {
 		typ := callType.In(i)
 		var paramName string
-		 if i < len(params) {
-		 	paramName = params[i]
-		 } else {
-		 	paramName = "*"
-		 }
+		if i < len(params) {
+			paramName = params[i]
+		} else {
+			paramName = "*"
+		}
 		w.Args[i] = &ActionArgs{Name: paramName, Type: typ}
 		if paramName == "*" {
 			RegisterStructAttributes(typ)
@@ -49,7 +51,7 @@ func Wrap(call interface{}, params ...string) *Wrapper {
 	return w
 }
 
-// The http handler
+// The http handler for the wrapped action
 func (wr *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	values := r.URL.Query()
 
