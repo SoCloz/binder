@@ -42,7 +42,7 @@ func ViewItem(i *Item) response.Response {
 http.Handle("/items", binder.Wrap(ViewItem, "id"))
 ```
 
-binder is compatible with pat:
+binder is compatible with pat (no need to add ":" to your bindings, binder automatically adds it) :
 
 ```go
 m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
