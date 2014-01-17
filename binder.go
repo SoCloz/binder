@@ -21,7 +21,7 @@ var (
 
 	// Binds an integer (signed)
 	IntBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := values.Get(name)
+		val := GetValue(values, name)
 		if len(val) == 0 {
 			return reflect.Zero(typ), true
 		}
@@ -36,7 +36,7 @@ var (
 
 	// Binds an integer (unsigned)
 	UintBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := values.Get(name)
+		val := GetValue(values, name)
 		if len(val) == 0 {
 			return reflect.Zero(typ), true
 		}
@@ -66,7 +66,7 @@ var (
 
 	// Binds a string
 	StringBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := values.Get(name)
+		val := GetValue(values, name)
 		return reflect.ValueOf(val), false
 	}
 
@@ -75,7 +75,7 @@ var (
 	// "on" and "" (a checkbox)
 	// "1" and "0" (why not)
 	BoolBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := values.Get(name)
+		val := GetValue(values, name)
 		v := strings.TrimSpace(strings.ToLower(val))
 		switch v {
 		case "yes", "true", "on", "1":
@@ -85,9 +85,9 @@ var (
 		return reflect.ValueOf(false), false
 	}
 
-	// Binds a comma separated list to a slice of strings.
+	// Binds a comma separated list to a slice
 	StringSliceBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := values.Get(name)
+		val := GetValue(values, name)
 		if val == "" {
 			return reflect.MakeSlice(typ, 0, 0), true
 		}
