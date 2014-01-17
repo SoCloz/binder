@@ -24,7 +24,7 @@ type Wrapper struct {
 //
 // Example :
 //   func MyAction(id int, param string) {}
-//   http.Handle("/my_action", binder.Wrap(MyAction, "id", "param"))
+//   http.Handle("/my_action", binder.Wrap(MyAction, "id", "param")
 func Wrap(call interface{}, params ...string) *Wrapper {
 	w := new(Wrapper)
 	w.Call = reflect.ValueOf(call)
