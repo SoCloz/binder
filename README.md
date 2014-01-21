@@ -81,6 +81,7 @@ Binder currently binds :
 * pointers (nil if no value found)
 * structs
 * custom binders
+* the request
 
 Custom binders
 --------------
@@ -116,6 +117,18 @@ And then :
 ```go
 func ViewItem(i *Item) response.Response {}
 
+m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
+```
+
+Binding the request
+-------------------
+
+If your controller has a parameter of type *http.Request, it will be bound to the current http request. You can wrap it using "*" (or omit "*" if it is at the end of the call) :
+
+```go
+func ViewItem(id int, r *http.Request) response.Response {}
+
+m.Get("/items/:id", binder.Wrap(ViewItem, "id", "*"))
 m.Get("/items/:id", binder.Wrap(ViewItem, "id"))
 ```
 

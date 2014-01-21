@@ -1,6 +1,8 @@
 package binder
 
 import (
+	"fmt"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -8,7 +10,7 @@ import (
 )
 
 // A Binder translates between string parameters and Go data structures.
-type ValueBinder func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool)
+type ValueBinder func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool)
 
 // The map of query string param name => struct attribute name
 type StructAttributes map[string]string
@@ -20,8 +22,8 @@ var (
 	StructAttributesMap = make(map[reflect.Type]StructAttributes)
 
 	// Binds an integer (signed)
-	IntBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	IntBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		if len(val) == 0 {
 			return reflect.Zero(typ), true
 		}
@@ -35,8 +37,8 @@ var (
 	}
 
 	// Binds an integer (unsigned)
-	UintBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	UintBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		if len(val) == 0 {
 			return reflect.Zero(typ), true
 		}
@@ -50,8 +52,8 @@ var (
 	}
 
 	// Binds a float
-	FloatBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	FloatBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		if len(val) == 0 {
 			return reflect.Zero(typ), true
 		}
@@ -65,8 +67,8 @@ var (
 	}
 
 	// Binds a string
-	StringBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	StringBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		return reflect.ValueOf(val), false
 	}
 
@@ -74,8 +76,8 @@ var (
 	// "true" and "false"
 	// "on" and "" (a checkbox)
 	// "1" and "0" (why not)
-	BoolBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	BoolBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		v := strings.TrimSpace(strings.ToLower(val))
 		switch v {
 		case "yes", "true", "on", "1":
@@ -86,36 +88,38 @@ var (
 	}
 
 	// Binds a comma separated list to a slice
-	StringSliceBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
-		val := GetValue(values, name)
+	StringSliceBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
 		if val == "" {
 			return reflect.MakeSlice(typ, 0, 0), true
 		}
 		split := strings.Split(val, ",")
 		result := reflect.MakeSlice(typ, len(split), len(split))
+		old := r.URL.RawQuery
 		for index, item := range split {
-			values.Set(name, item)
-			itemVal, _ := Bind(values, name, typ.Elem())
+			r.URL.RawQuery = fmt.Sprintf("%s=%s", url.QueryEscape(name), url.QueryEscape(item))
+			itemVal, _ := Bind(r, name, typ.Elem())
 			result.Index(index).Set(itemVal)
 		}
+		r.URL.RawQuery = old
 		return result, false
 	}
 
 	// Binds a set of parameters to a struct.
-	StructBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
+	StructBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
 		result := reflect.New(typ).Elem()
 		for fieldName, attrName := range StructAttributesMap[typ] {
 			fieldValue := result.FieldByName(fieldName)
-			boundVal, _ := Bind(values, attrName, fieldValue.Type())
+			boundVal, _ := Bind(r, attrName, fieldValue.Type())
 			fieldValue.Set(boundVal)
 		}
 		return result, false
 	}
 
 	// Binds a pointer. If nothing found, returns nil.
-	PointerBinder = func(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
+	PointerBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
 		pointerOf := typ.Elem()
-		value, isNil := Bind(values, name, pointerOf)
+		value, isNil := Bind(r, name, pointerOf)
 		if isNil {
 			return reflect.Zero(typ), true
 		} else {
@@ -123,6 +127,11 @@ var (
 		}
 
 		return reflect.Zero(typ), true
+	}
+
+	// Binds the http request.
+	RequestBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		return reflect.ValueOf(r), false
 	}
 )
 
@@ -148,23 +157,25 @@ func init() {
 	KindBinders[reflect.Slice] = StringSliceBinder
 	KindBinders[reflect.Ptr] = PointerBinder
 	KindBinders[reflect.Struct] = StructBinder
+
+	TypeBinders[reflect.TypeOf(&http.Request{})] = RequestBinder
 }
 
 // Takes the name and type of the desired parameter and constructs it
 // from query string values.
 // Returns the zero value of the type upon any sort of failure.
-func GetBoundValue(values url.Values, name string, typ reflect.Type) reflect.Value {
-	ret, _ := Bind(values, name, typ)
+func GetBoundValue(r *http.Request, name string, typ reflect.Type) reflect.Value {
+	ret, _ := Bind(r, name, typ)
 	return ret
 }
 
 // Constructs a value of a specific type
-func Bind(values url.Values, name string, typ reflect.Type) (reflect.Value, bool) {
+func Bind(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
 	if binder, found := TypeBinders[typ]; found {
-		return binder(values, name, typ)
+		return binder(r, name, typ)
 	} else {
 		if binder, found := KindBinders[typ.Kind()]; found {
-			return binder(values, name, typ)
+			return binder(r, name, typ)
 		}
 	}
 	return reflect.Zero(typ), true
@@ -178,6 +189,12 @@ func RegisterBinder(i interface{}, binder ValueBinder) {
 
 // Register the mapping of params to struct fields
 func RegisterStructAttributes(typ reflect.Type) {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return
+	}
 	StructAttributesMap[typ] = make(StructAttributes)
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
@@ -193,8 +210,9 @@ func RegisterStructAttributes(typ reflect.Type) {
 	}
 }
 
-// Get a single value from url.Values (query string or pat url parameter)
-func GetValue(values url.Values, name string) string {
+// Get a single value from the request query (plain or pat url parameter)
+func GetValue(r *http.Request, name string) string {
+	values := r.URL.Query()
 	// pat url parameter
 	if _, found := values[":"+name]; found {
 		return values.Get(":" + name)

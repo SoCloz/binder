@@ -53,11 +53,9 @@ func Wrap(call interface{}, params ...string) *Wrapper {
 
 // The http handler for the wrapped action
 func (wr *Wrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	values := r.URL.Query()
-
 	methodArgs := make([]reflect.Value, len(wr.Args))
 	for i, a := range wr.Args {
-		methodArgs[i] = GetBoundValue(values, a.Name, a.Type)
+		methodArgs[i] = GetBoundValue(r, a.Name, a.Type)
 	}
 	var resultValue reflect.Value
 	if wr.IsVariadic {
