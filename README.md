@@ -1,7 +1,7 @@
 binder
 ======
 
-Go web framework controller component - http handlers without the http.Request/http.ResponseWriter clutter
+Go web micro-framework - http handlers without the http.Request/http.ResponseWriter clutter
 
 Documentation : http://godoc.org/github.com/SoCloz/binder
 
