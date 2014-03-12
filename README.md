@@ -3,6 +3,8 @@ binder
 
 Go web micro-framework - http handlers without the http.Request/http.ResponseWriter clutter
 
+binder is currently used in production.
+
 Documentation : http://godoc.org/github.com/SoCloz/binder
 
 Works with pat or using standard net/http handler.
