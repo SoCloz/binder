@@ -181,11 +181,21 @@ return &response.Json{data}
 return &response.Error{http.StatusNotFound, "content"}
 ```
 
+Database connections ?
+----------------------
+
+binder does not handle your database connections, your model or whatever. Use your favorite tool.
+
+Templating ?
+------------
+
+binder does not generate your HTML code. Use your favorite templating engine and return a `response.Basic` response.
+
 Roadmap
 -------
 
 * binder : bind http headers
-* more response types
+* more response types & http headers in responses
 
 License
 -------
