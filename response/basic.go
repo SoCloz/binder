@@ -8,8 +8,10 @@ import (
 type Basic struct {
 	// Content
 	Content string
+	Base
 }
 
 func (r *Basic) ApplyTo(w http.ResponseWriter) {
+	r.Base.ApplyTo(w)
 	w.Write([]byte(r.Content))
 }

@@ -10,9 +10,11 @@ type Error struct {
 	StatusCode int
 	// Message
 	Message string
+	Base
 }
 
 func (r *Error) ApplyTo(w http.ResponseWriter) {
-	w.WriteHeader(r.StatusCode)
+	r.SetStatusCode(r.StatusCode)
+	r.Base.ApplyTo(w)
 	w.Write([]byte(r.Message))
 }

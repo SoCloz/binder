@@ -181,6 +181,13 @@ return &response.Json{data}
 return &response.Error{http.StatusNotFound, "content"}
 ```
 
+The status code can be changed using :
+
+```go
+r := &response.Json{data}
+r.SetStatusCode(http.StatusBadRequest)
+```
+
 Database connections ?
 ----------------------
 

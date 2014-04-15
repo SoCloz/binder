@@ -7,7 +7,9 @@ import (
 
 // A JSON Response
 type Json struct {
+	// Payload
 	Data interface{}
+	Base
 }
 
 func (r *Json) ApplyTo(w http.ResponseWriter) {
@@ -18,5 +20,6 @@ func (r *Json) ApplyTo(w http.ResponseWriter) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	r.Base.ApplyTo(w)
 	w.Write(jsonResult)
 }
