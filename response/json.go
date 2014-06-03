@@ -13,7 +13,7 @@ type Json struct {
 }
 
 func (r *Json) ApplyTo(w http.ResponseWriter) {
-	jsonResult, err := json.Marshal(r.Data)
+	jsonResult, err := json.MarshalIndent(r.Data, "", "  ")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
