@@ -9,7 +9,9 @@ type Base struct {
 }
 
 func (r *Base) ApplyTo(w http.ResponseWriter) {
-	w.WriteHeader(r.StatusCode)
+	if r.StatusCode != 0 {
+		w.WriteHeader(r.StatusCode)
+	}
 }
 
 // Set the HTTP status code
