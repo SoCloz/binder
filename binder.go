@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // A Binder translates between string parameters and Go data structures.
@@ -133,6 +134,20 @@ var (
 	RequestBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
 		return reflect.ValueOf(r), false
 	}
+
+	// Binds a time value (YYYY-MM-DD or RFC3339)
+	TimeBinder = func(r *http.Request, name string, typ reflect.Type) (reflect.Value, bool) {
+		val := GetValue(r, name)
+		var layout = time.RFC3339
+		if len(val) == 10 {
+			layout = "2006-01-02"
+		}
+		t, err := time.Parse(layout, val)
+		if err != nil {
+			return reflect.Zero(typ), true
+		}
+		return reflect.ValueOf(t), false
+	}
 )
 
 // Builds the lookup table
@@ -159,6 +174,7 @@ func init() {
 	KindBinders[reflect.Struct] = StructBinder
 
 	TypeBinders[reflect.TypeOf(&http.Request{})] = RequestBinder
+	TypeBinders[reflect.TypeOf(time.Time{})] = TimeBinder
 }
 
 // Takes the name and type of the desired parameter and constructs it
